@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>实景三维实体分割提取系统</title>
+  <style>
+    html, body {
+      margin: 0; padding: 0; width: 100%; height: 100%;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0a0e14;
+      color: #e8eaed;
+    }
+    #cesiumContainer { position: absolute; top: 0; left: 0; right: 0; bottom: 0; }
+    #ui-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 10; }
+    .panel {
+      pointer-events: auto; position: absolute;
+      background: rgba(20, 25, 35, 0.92); color: #e8eaed;
+      border-radius: 8px; padding: 12px 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+      backdrop-filter: blur(8px); font-size: 13px;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    #controlPanel { top: 16px; left: 16px; width: 280px; }
+    #resultPanel { top: 16px; right: 16px; width: 300px; max-height: 70vh; overflow-y: auto; }
+    .panel h3 { margin: 0 0 10px 0; font-size: 14px; color: #4fc3f7; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 6px; }
+    .panel h4 { margin: 12px 0 6px 0; font-size: 12px; color: #81c784; }
+    .btn {
+      display: inline-block; padding: 6px 12px; margin: 4px 2px;
+      border: 1px solid #4fc3f7; border-radius: 4px;
+      background: rgba(79, 195, 247, 0.15); color: #4fc3f7;
+      cursor: pointer; font-size: 12px; transition: all 0.2s;
+      text-align: center;
+    }
+    .btn:hover { background: rgba(79, 195, 247, 0.3); }
+    .btn.primary { background: #4fc3f7; color: #0d1117; border-color: #4fc3f7; }
+    .btn.primary:hover { background: #81d4fa; }
+    .btn.danger { border-color: #ef5350; color: #ef5350; background: rgba(239, 83, 80, 0.1); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn.active { background: #4fc3f7; color: #0d1117; }
+    .input-group { margin: 8px 0; }
+    .input-group label { display: block; font-size: 11px; color: #aaa; margin-bottom: 3px; }
+    .input-group input[type="text"] { width: 100%; padding: 5px 8px; border: 1px solid #555; border-radius: 4px; background: rgba(0,0,0,0.3); color: #e8eaed; font-size: 12px; box-sizing: border-box; }
+    .input-group input[type="range"] { width: 100%; }
+    .checkbox-group { display: flex; align-items: center; gap: 6px; margin: 4px 0; font-size: 12px; }
+    .entity-item { padding: 8px; margin: 4px 0; border-radius: 4px; background: rgba(255,255,255,0.05); cursor: pointer; transition: background 0.2s; }
+    .entity-item:hover { background: rgba(255,255,255,0.1); }
+    .entity-item.selected { background: rgba(79, 195, 247, 0.2); border-left: 3px solid #4fc3f7; }
+    .entity-item .entity-id { font-weight: bold; font-size: 12px; }
+    .entity-item .entity-info { font-size: 11px; color: #aaa; margin-top: 2px; }
+    #statusBar { position: absolute; bottom: 0; left: 0; right: 0; height: 28px; background: rgba(20, 25, 35, 0.95); color: #aaa; font-size: 12px; display: flex; align-items: center; padding: 0 16px; border-top: 1px solid rgba(255,255,255,0.1); z-index: 10;}
+    #statusBar .status-item { margin-right: 20px; }
+    #statusBar .status-item .label { color: #888; }
+    #statusBar .status-item .value { color: #4fc3f7; margin-left: 4px; }
+    #loadingOverlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(20, 25, 35, 0.95); color: #e8eaed; padding: 20px 32px; border-radius: 8px; text-align: center; display: none; z-index: 100; box-shadow: 0 4px 20px rgba(0,0,0,0.5); pointer-events: auto;}
+    #loadingOverlay .spinner { width: 32px; height: 32px; border: 3px solid rgba(79, 195, 247, 0.3); border-top-color: #4fc3f7; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px auto; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #loadingOverlay .progress-text { font-size: 13px; color: #4fc3f7; }
+    #rectCanvas { position: absolute; top: 0; left: 0; cursor: crosshair; display: none; z-index: 5; pointer-events: auto;}
+    .hidden { display: none !important; }
+    .view-badge { display: inline-block; padding: 2px 6px; margin: 0 2px; border-radius: 3px; font-size: 10px; background: rgba(79, 195, 247, 0.2); color: #4fc3f7; cursor: pointer; user-select: none;}
+    .view-badge.active { background: #4fc3f7; color: #0d1117; }
+    .stats-row { display: flex; justify-content: space-between; font-size: 11px; color: #aaa; margin: 2px 0; }
+    .stats-row .val { color: #4fc3f7; }
+  </style>
+  <script type="module" crossorigin src="./assets/index-CxONutAn.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-DOjaTs7a.css">
+</head>
+<body>
+  <div id="cesiumContainer"></div>
+  <div id="ui-overlay">
+    <div id="controlPanel" class="panel">
+      <h3>🏗️ 实体分割提取系统</h3>
+      <div class="input-group">
+        <label>3D Tiles 服务地址</label>
+        <input type="text" id="tilesetUrl" value="https://data.mars3d.cn/3dtiles/qx-simiao/tileset.json" />
+      </div>
+      <div style="display: flex; gap: 4px;">
+        <button class="btn primary" id="loadTilesBtn">加载瓦片</button>
+        <button class="btn" id="flyHomeBtn">复位</button>
+      </div>
+      <h4>🎯 提取模式</h4>
+      <div style="display: flex; gap: 4px;">
+        <button class="btn" id="modeViewportBtn" title="全视口批量提取">全视口</button>
+        <button class="btn" id="modeRectBtn" title="框选局部提取">框选</button>
+      </div>
+      <h4>⚙️ 分割参数</h4>
+      <div class="input-group">
+        <label>采样视角</label>
+        <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+          <span class="view-badge active" data-view="top">俯视</span>
+          <span class="view-badge active" data-view="angle">斜45°</span>
+          <span class="view-badge active" data-view="front">平视</span>
+        </div>
+      </div>
+      <div class="input-group">
+        <label>连通阈值 (m): <span id="thresholdVal">0.5</span></label>
+        <input type="range" id="threshold" min="0.1" max="2.0" step="0.1" value="0.5" />
+      </div>
+      <div class="input-group">
+        <label>最小面片数: <span id="minFacesVal">20</span></label>
+        <input type="range" id="minFaces" min="5" max="100" step="5" value="20" />
+      </div>
+      <div class="checkbox-group">
+        <input type="checkbox" id="filterGround" checked />
+        <label for="filterGround">过滤地面基底</label>
+      </div>
+      <div style="display: flex; gap: 4px; margin-top: 10px;">
+        <button class="btn primary" id="extractBtn" disabled>🚀 开始提取</button>
+        <button class="btn" id="clearBtn">清除结果</button>
+      </div>
+    </div>
+    <div id="resultPanel" class="panel hidden">
+      <h3>📊 提取结果</h3>
+      <div class="stats-row"><span>实体总数:</span><span class="val" id="entityCount">0</span></div>
+      <div class="stats-row"><span>处理耗时:</span><span class="val" id="processTime">0s</span></div>
+      <div id="entityList"></div>
+      <h4>📥 导出</h4>
+      <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+        <button class="btn" id="exportGeoJSON">GeoJSON</button>
+        <button class="btn" id="exportJSON">参数JSON</button>
+      </div>
+    </div>
+    <canvas id="rectCanvas"></canvas>
+    <div id="statusBar">
+      <div class="status-item"><span class="label">状态:</span><span class="value" id="statusText">就绪</span></div>
+      <div class="status-item"><span class="label">FPS:</span><span class="value" id="fpsCounter">0</span></div>
+      <div class="status-item"><span class="label">瓦片:</span><span class="value" id="tileCount">0</span></div>
+      <div style="flex: 1;"></div>
+      <div class="status-item"><span class="label">实体:</span><span class="value" id="entityCountStatus">0</span></div>
+    </div>
+    <div id="loadingOverlay">
+      <div class="spinner"></div>
+      <div class="progress-text" id="loadingText">初始化中...</div>
+    </div>
+  </div>
+</body>
+</html>
