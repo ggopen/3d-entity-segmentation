@@ -1,0 +1,20 @@
+{
+  "name": "3d-entity-segmentation",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --port 4173",
+    "deploy": "gh-pages -d dist"
+  },
+  "devDependencies": {
+    "gh-pages": "^6.1.0",
+    "vite": "^6.0.0"
+  },
+  "dependencies": {
+    "cesium": "^1.120.0",
+    "three": "^0.160.0"
+  }
+}
