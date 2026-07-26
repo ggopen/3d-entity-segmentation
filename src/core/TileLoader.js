@@ -12,87 +12,66 @@ class TileLoader {
   async load(url) {
     this.clear();
 
-    setStatus('正在获取瓦片配置...');
+    setStatus('正在初始化三维瓦片...');
     showLoading('加载瓦片数据...');
 
     try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error('HTTP ' + response.status + ' ' + response.statusText);
+      const tileset = await Cesium.Cesium3DTileset.fromUrl(url, {
+        maximumScreenSpaceError: 16,
+        skipLevelOfDetail: true,
+        baseScreenSpaceError: 1024
+      });
+
+      this.tileset = tileset;
+
+      tileset.initialTilesLoaded.addEventListener(() => {
+        setStatus('瓦片基础层级加载完成');
+        hideLoading();
+      });
+
+      tileset.allTilesLoaded.addEventListener(() => {
+        console.log('All tiles loaded');
+        setStatus('所有瓦片加载完成');
+      });
+
+      tileset.tileFailed.addEventListener((error) => {
+        console.warn('Tile failed:', error);
+      });
+
+      this.viewer.viewer.scene.primitives.add(tileset);
+
+      if (tileset.boundingSphere) {
+        const radius = Math.max(tileset.boundingSphere.radius, 100);
+        this.viewer.viewer.camera.flyToBoundingSphere(tileset.boundingSphere, {
+          duration: 2,
+          offset: new Cesium.HeadingPitchRange(
+            0,
+            Cesium.Math.toRadians(-30),
+            radius * 2
+          )
+        });
       }
 
-      const tilesetJson = await response.json();
-      console.log('Tileset JSON loaded:', tilesetJson.asset?.version, 'root:', !!tilesetJson.root);
+      let checkCount = 0;
+      const checkTiles = () => {
+        if (this.tileset && !this.tileset.isDestroyed()) {
+          checkCount++;
+          const stats = this._countTiles(this.tileset);
+          this.viewer.updateTileCount(stats);
 
-      setStatus('正在初始化三维瓦片...');
-
-      return new Promise((resolve, reject) => {
-        try {
-          const tileset = new Cesium.Cesium3DTileset({
-            url: url,
-            maximumScreenSpaceError: 16,
-            skipLevelOfDetail: true,
-            baseScreenSpaceError: 1024
-          });
-
-          this.tileset = tileset;
-
-          tileset.initialTilesLoaded.addEventListener(() => {
-            setStatus('瓦片基础层级加载完成');
-            hideLoading();
-          });
-
-          tileset.allTilesLoaded.addEventListener(() => {
-            console.log('All tiles loaded');
-            setStatus('所有瓦片加载完成');
-          });
-
-          tileset.tileFailed.addEventListener((error) => {
-            console.warn('Tile failed:', error);
-          });
-
-          this.viewer.viewer.scene.primitives.add(tileset);
-
-          if (tileset.boundingSphere) {
-            const radius = Math.max(tileset.boundingSphere.radius, 100);
-            this.viewer.viewer.camera.flyToBoundingSphere(tileset.boundingSphere, {
-              duration: 2,
-              offset: new Cesium.HeadingPitchRange(
-                0,
-                Cesium.Math.toRadians(-30),
-                radius * 2
-              )
-            });
-          }
-
-          let checkCount = 0;
-          const checkTiles = () => {
-            if (this.tileset && !this.tileset.isDestroyed()) {
-              checkCount++;
-              const stats = this._countTiles(this.tileset);
-              this.viewer.updateTileCount(stats);
-
-              if (checkCount % 30 === 0) {
-                this._extractTriangleData(this.tileset);
-              }
-            }
-            requestAnimationFrame(checkTiles);
-          };
-          checkTiles();
-
-          setTimeout(() => {
+          if (checkCount % 30 === 0) {
             this._extractTriangleData(this.tileset);
-            resolve(tileset);
-          }, 5000);
-
-          setTimeout(() => {
-            resolve(tileset);
-          }, 15000);
-
-        } catch (err) {
-          reject(err);
+          }
         }
-      });
+        requestAnimationFrame(checkTiles);
+      };
+      checkTiles();
+
+      setTimeout(() => {
+        this._extractTriangleData(this.tileset);
+      }, 5000);
+
+      return tileset;
 
     } catch (err) {
       console.error('Tile load failed:', err);
