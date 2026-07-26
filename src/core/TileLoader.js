@@ -24,11 +24,6 @@ class TileLoader {
 
       this.tileset = tileset;
 
-      tileset.initialTilesLoaded.addEventListener(() => {
-        setStatus('瓦片基础层级加载完成');
-        hideLoading();
-      });
-
       tileset.allTilesLoaded.addEventListener(() => {
         console.log('All tiles loaded');
         setStatus('所有瓦片加载完成');
@@ -40,17 +35,28 @@ class TileLoader {
 
       this.viewer.viewer.scene.primitives.add(tileset);
 
-      if (tileset.boundingSphere) {
-        const radius = Math.max(tileset.boundingSphere.radius, 100);
-        this.viewer.viewer.camera.flyToBoundingSphere(tileset.boundingSphere, {
-          duration: 2,
-          offset: new Cesium.HeadingPitchRange(
+      let zoomed = false;
+      const zoomToTileset = async () => {
+        if (zoomed) return;
+        try {
+          await this.viewer.viewer.zoomTo(tileset, new Cesium.HeadingPitchRange(
             0,
             Cesium.Math.toRadians(-30),
-            radius * 2
-          )
-        });
-      }
+            0
+          ));
+          zoomed = true;
+          setStatus('瓦片已加载 - 可开始实体提取');
+        } catch (e) {
+          console.warn('zoomTo failed:', e);
+        }
+      };
+
+      tileset.initialTilesLoaded.addEventListener(() => {
+        zoomToTileset();
+        hideLoading();
+      });
+
+      setTimeout(zoomToTileset, 3000);
 
       let checkCount = 0;
       const checkTiles = () => {

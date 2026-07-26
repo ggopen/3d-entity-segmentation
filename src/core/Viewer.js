@@ -61,32 +61,7 @@ class Viewer {
     canvas.style.cursor = 'grab';
     this._originalCursor = canvas.style.cursor;
 
-    this.viewer.camera.setView({
-      destination: Cesium.Cartesian3.fromDegrees(116.391, 39.907, 500)
-    });
-
-    this._setupInputHandlers();
-  }
-
-  _setupInputHandlers() {
-    const handler = this.viewer.screenSpaceEventHandler;
-    const eventsToRemove = [
-      Cesium.ScreenSpaceEventType.LEFT_DOWN,
-      Cesium.ScreenSpaceEventType.LEFT_UP,
-      Cesium.ScreenSpaceEventType.RIGHT_DOWN,
-      Cesium.ScreenSpaceEventType.RIGHT_UP,
-      Cesium.ScreenSpaceEventType.MIDDLE_DOWN,
-      Cesium.ScreenSpaceEventType.MIDDLE_UP,
-      Cesium.ScreenSpaceEventType.MOUSE_MOVE,
-      Cesium.ScreenSpaceEventType.WHEEL,
-      Cesium.ScreenSpaceEventType.PINCH_START,
-      Cesium.ScreenSpaceEventType.PINCH_MOVE,
-      Cesium.ScreenSpaceEventType.PINCH_END
-    ];
-
-    for (const eventType of eventsToRemove) {
-      handler.removeInputAction(eventType);
-    }
+    this._interactionHandler = new Cesium.ScreenSpaceEventHandler(canvas);
   }
 
   _setupFPSCounter() {
@@ -286,6 +261,10 @@ class Viewer {
     if (this._fpsInterval) {
       clearInterval(this._fpsInterval);
       this._fpsInterval = null;
+    }
+    if (this._interactionHandler) {
+      this._interactionHandler.destroy();
+      this._interactionHandler = null;
     }
     if (this.viewer) {
       this.viewer.destroy();
