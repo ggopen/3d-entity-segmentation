@@ -1,3 +1,5 @@
+import * as Cesium from 'cesium';
+
 class Viewer {
   constructor(containerId) {
     this.containerId = containerId;

@@ -1,3 +1,5 @@
+import * as Cesium from 'cesium';
+
 class InteractionController {
   constructor(viewer) {
     this.viewer = viewer;

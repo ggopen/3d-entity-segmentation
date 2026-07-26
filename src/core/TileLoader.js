@@ -1,3 +1,5 @@
+import * as Cesium from 'cesium';
+
 class TileLoader {
   constructor(viewer) {
     this.viewer = viewer;

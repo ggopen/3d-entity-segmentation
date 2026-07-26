@@ -1,3 +1,5 @@
+import * as Cesium from 'cesium';
+
 class SpatialCluster {
   constructor() {
     this._connectedThreshold = 0.5;

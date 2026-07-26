@@ -1,3 +1,5 @@
+import * as Cesium from 'cesium';
+
 class BackProjector {
   constructor(viewer) {
     this.viewer = viewer;
