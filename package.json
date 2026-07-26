@@ -15,6 +15,7 @@
     "vite-plugin-cesium": "^1.2.23"
   },
   "dependencies": {
+    "@zip.js/zip.js": "^2.7.57",
     "cesium": "^1.120.0",
     "three": "^0.160.0"
   }
