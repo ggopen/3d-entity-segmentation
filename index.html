@@ -64,6 +64,37 @@
     .view-badge.active { background: #4fc3f7; color: #0d1117; }
     .stats-row { display: flex; justify-content: space-between; font-size: 11px; color: #aaa; margin: 2px 0; }
     .stats-row .val { color: #4fc3f7; }
+    #logPanel {
+      position: absolute; bottom: 32px; left: 16px; width: 380px; max-height: 240px;
+      background: rgba(20, 25, 35, 0.92); color: #e8eaed;
+      border-radius: 8px; font-size: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.08);
+      z-index: 20; display: flex; flex-direction: column;
+      transition: max-height 0.3s ease;
+    }
+    #logPanel.collapsed { max-height: 32px; }
+    #logPanelHeader {
+      padding: 6px 10px; background: rgba(79, 195, 247, 0.15);
+      border-radius: 8px 8px 0 0; cursor: pointer;
+      display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    #logPanelHeader .title { color: #4fc3f7; font-weight: bold; font-size: 12px; }
+    #logPanelHeader .actions { display: flex; gap: 6px; }
+    #logPanelHeader .actions span { font-size: 11px; color: #aaa; cursor: pointer; }
+    #logPanelHeader .actions span:hover { color: #fff; }
+    #logPanelHeader .toggle-icon { transition: transform 0.3s; }
+    #logPanel.collapsed .toggle-icon { transform: rotate(-90deg); }
+    #logContent {
+      padding: 6px 10px; overflow-y: auto; flex: 1;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      max-height: 200px;
+    }
+    #logContent::-webkit-scrollbar { width: 4px; }
+    #logContent::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 2px; }
+    #logContent::-webkit-scrollbar-track { background: transparent; }
   </style>
 </head>
 <body>
@@ -132,6 +163,16 @@
     <div id="loadingOverlay">
       <div class="spinner"></div>
       <div class="progress-text" id="loadingText">初始化中...</div>
+    </div>
+    <div id="logPanel">
+      <div id="logPanelHeader">
+        <span class="title">📋 系统日志</span>
+        <div class="actions">
+          <span id="clearLogBtn" title="清空日志">🗑️ 清空</span>
+          <span class="toggle-icon" id="toggleLogBtn" title="收起/展开">▼</span>
+        </div>
+      </div>
+      <div id="logContent"></div>
     </div>
   </div>
   <script type="module" src="./src/main.js"></script>
