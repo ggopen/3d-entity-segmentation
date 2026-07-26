@@ -118,8 +118,33 @@ async function init() {
   } catch (err) {
     console.error('初始化失败:', err);
     hideLoading();
-    setStatus('初始化失败: ' + err.message);
+    
+    const msg = err.message || String(err);
+    if (msg.includes('WebGL')) {
+      setStatus('WebGL 不可用 - 请使用支持 WebGL 的浏览器（Chrome/Firefox/Edge 最新版）');
+      showWebGLFallback(msg);
+    } else {
+      setStatus('初始化失败: ' + msg);
+    }
   }
+}
+
+function showWebGLFallback(message) {
+  const container = $('cesiumContainer');
+  container.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:center;height:100%;background:linear-gradient(135deg,#1a1a2e,#16213e);color:#fff;text-align:center;padding:20px;">
+      <div>
+        <div style="font-size:48px;margin-bottom:16px;">⚠️</div>
+        <h2 style="margin-bottom:12px;color:#ff6b6b;">WebGL 不可用</h2>
+        <p style="margin-bottom:8px;line-height:1.6;">${message}</p>
+        <p style="color:#888;font-size:14px;margin-top:16px;">
+          推荐浏览器：Chrome 90+ / Firefox 88+ / Edge 90+<br>
+          请确保显卡驱动已更新，并在浏览器设置中启用硬件加速
+        </p>
+      </div>
+    </div>
+  `;
+  container.style.background = '#1a1a2e';
 }
 
 function bindEvents() {

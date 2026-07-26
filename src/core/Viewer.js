@@ -8,8 +8,17 @@ class Viewer {
     this._onTileCountChange = null;
     this._onFPSUpdate = null;
 
+    this._checkWebGL();
     this._initViewer();
     this._setupFPSCounter();
+  }
+
+  _checkWebGL() {
+    const canvas = document.createElement('canvas');
+    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+    if (!gl) {
+      throw new Error('您的浏览器或硬件不支持 WebGL，无法运行三维引擎。请使用最新版 Chrome、Firefox 或 Edge 浏览器，并确保显卡驱动已更新。');
+    }
   }
 
   _initViewer() {
